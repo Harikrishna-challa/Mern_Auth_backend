@@ -4,12 +4,13 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+import authMiddleware from "../middleware/authMiddleware.js"; // Ensure authMiddleware is properly set up
 
 dotenv.config();
 
 const router = express.Router();
 
-// Setup Nodemailer Transporter
+// 📌 Setup Nodemailer Transporter
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -22,6 +23,10 @@ const transporter = nodemailer.createTransport({
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: "User already exists" });
@@ -40,6 +45,10 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
 
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
@@ -92,6 +101,10 @@ router.post("/reset-password/:token", async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
 
+    if (!password) {
+      return res.status(400).json({ message: "New password is required" });
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -101,6 +114,23 @@ router.post("/reset-password/:token", async (req, res) => {
   } catch (error) {
     console.error("Error in Reset Password Route:", error);
     res.status(400).json({ message: "Invalid or expired token" });
+  }
+});
+
+// 📌 DELETE ACCOUNT
+router.delete("/delete-account", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Ensure user exists before deleting
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    await User.findByIdAndDelete(userId);
+    res.json({ message: "Account deleted successfully" });
+  } catch (error) {
+    console.error("Error in Delete Account Route:", error);
+    res.status(500).json({ message: "Server error while deleting account" });
   }
 });
 
