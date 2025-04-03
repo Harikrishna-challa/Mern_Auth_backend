@@ -17,6 +17,11 @@ app.use(express.json()); // Allows JSON request body
 // Routes
 app.use("/api/auth", authRoutes);
 
+// ✅ Add a default route for `/`
+app.get("/", (req, res) => {
+  res.send("Backend is running...");
+});
+
 // Connect to MongoDB
 mongoose
   .connect(process.env.MONGO_URI, {
@@ -28,4 +33,4 @@ mongoose
 
 // Start the server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
