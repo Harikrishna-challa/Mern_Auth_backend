@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
-import authMiddleware from "../middleware/authMiddleware.js"; // Ensure authMiddleware is properly set up
+import authMiddleware from "../middleware/authMiddleware.js";
 
 dotenv.config();
 
@@ -60,7 +60,9 @@ router.post("/login", async (req, res) => {
       return res.status(500).json({ message: "JWT Secret is missing in .env file" });
     }
 
-    const token = jwt.sign({ id: user._id, name: user.name }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign({ id: user._id, name: user.name }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
     res.json({ token, name: user.name });
   } catch (error) {
@@ -85,13 +87,15 @@ router.post("/forgot-password", async (req, res) => {
       from: process.env.EMAIL,
       to: email,
       subject: "Password Reset Request",
-      html: `<p>Click <a href="${resetLink}">here</a> to reset your password. This link expires in 15 minutes.</p>`,
+      html: `<p>Hello ${user.name},</p>
+             <p>You requested a password reset. Click <a href="${resetLink}">here</a> to reset your password.</p>
+             <p>This link will expire in 15 minutes.</p>`,
     });
 
     res.json({ message: "Password reset email sent!" });
   } catch (error) {
     console.error("Error in Forgot Password Route:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Email sending failed", error: error.message });
   }
 });
 
@@ -101,9 +105,7 @@ router.post("/reset-password/:token", async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
 
-    if (!password) {
-      return res.status(400).json({ message: "New password is required" });
-    }
+    if (!password) return res.status(400).json({ message: "New password is required" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
@@ -122,7 +124,6 @@ router.delete("/delete-account", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Ensure user exists before deleting
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
